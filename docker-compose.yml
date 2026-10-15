@@ -1,0 +1,74 @@
+# `docker compose up` -> gateway on :8080 (mock backends, no keys needed),
+# Prometheus on :9090, Grafana on :3000 (dashboard "LLM Gateway", anonymous viewer).
+# Real providers: put ANTHROPIC_API_KEY / OPENAI_API_KEY in .env.
+# Self-hosted model: `docker compose --profile gpu up` and set VLLM_ENABLED=true in .env.
+
+services:
+  gateway:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      GATEWAY_REDIS_URL: redis://redis:6379/0
+      GATEWAY_LOG_LEVEL: ${GATEWAY_LOG_LEVEL:-INFO}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      VLLM_ENABLED: ${VLLM_ENABLED:-false}
+      VLLM_BASE_URL: ${VLLM_BASE_URL:-http://vllm:8000/v1}
+      GATEWAY_KEY_DOCPILOT: ${GATEWAY_KEY_DOCPILOT:-}
+      GATEWAY_KEY_FREE: ${GATEWAY_KEY_FREE:-}
+    volumes:
+      - ./config:/app/config:ro      # edit config/gateway.yaml, then `docker compose restart gateway`
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # reach an SSH-tunneled cluster vLLM on Linux too
+    depends_on: [redis]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    # Cache + counters only; losing them on restart is acceptable for a demo.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "512mb",
+              "--maxmemory-policy", "allkeys-lru"]
+    ports: ["6379:6379"]
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports: ["9090:9090"]
+    depends_on: [gateway]
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/gateway.json
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
+
+  vllm:
+    profiles: ["gpu"]
+    image: vllm/vllm-openai:v0.8.5   # bump as needed
+    command:
+      - --model=Qwen/Qwen2.5-1.5B-Instruct
+      - --enable-prefix-caching          # the point of the long-prompt routing rule
+      - --max-model-len=8192
+      - --gpu-memory-utilization=0.85
+      - --enable-auto-tool-choice        # OpenAI-style tool calls for Qwen2.5
+      - --tool-call-parser=hermes
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+    volumes:
+      - ${HF_HOME:-~/.cache/huggingface}:/root/.cache/huggingface
+    ports: ["8000:8000"]
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

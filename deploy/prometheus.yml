@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s      # short so load-test steps of ~1 min have enough points
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: gateway
+    static_configs:
+      - targets: ["gateway:8080"]
+  # vLLM exposes its own /metrics (queue depth, KV-cache usage, prefix-cache hit rate).
+  - job_name: vllm
+    static_configs:
+      - targets: ["vllm:8000"]

@@ -1,0 +1,141 @@
+# LLM Gateway configuration.
+# ${VAR} and ${VAR:-default} are substituted from the environment before parsing.
+
+# ---------------------------------------------------------------------------
+# Backends: where requests can go. A backend whose API key env var is empty,
+# or with enabled: false, is skipped by the router (not counted as a fallback).
+# ---------------------------------------------------------------------------
+backends:
+  - name: anthropic
+    type: anthropic
+    api_key_env: ANTHROPIC_API_KEY
+    timeout_s: 60
+  - name: openai
+    type: openai
+    base_url: ${OPENAI_UPSTREAM_BASE_URL:-https://api.openai.com/v1}
+    api_key_env: OPENAI_API_KEY
+    timeout_s: 60
+  - name: vllm
+    type: vllm
+    base_url: ${VLLM_BASE_URL:-http://localhost:8000/v1}
+    enabled: ${VLLM_ENABLED:-false}
+    timeout_s: 60
+  # In-process fake backends: let the demo, tests and load test run with zero keys.
+  # Two of them so the load test can "cut" the primary and watch fallback.
+  - name: mock-primary
+    type: mock
+    mock: {ttft_ms: 120, tokens_per_s: 80, output_tokens: 48, error_rate: 0.0}
+  - name: mock-backup
+    type: mock
+    mock: {ttft_ms: 250, tokens_per_s: 50, output_tokens: 48, error_rate: 0.0}
+
+# ---------------------------------------------------------------------------
+# Aliases: the `model` names clients send. Each is an ordered fallback chain.
+# ---------------------------------------------------------------------------
+aliases:
+  fast:
+    - {backend: anthropic, model: claude-haiku-5-5}
+    - {backend: openai, model: gpt-4.1-mini}
+    - {backend: mock-primary, model: mock-small}
+    - {backend: mock-backup, model: mock-small}
+  smart:
+    - {backend: anthropic, model: claude-sonnet-5-5}
+    - {backend: openai, model: gpt-4.1}
+    - {backend: mock-primary, model: mock-large}
+    - {backend: mock-backup, model: mock-large}
+  best:
+    - {backend: anthropic, model: claude-opus-5-5}
+    - {backend: mock-primary, model: mock-large}
+  cheap:
+    - {backend: vllm, model: Qwen/Qwen2.5-1.5B-Instruct}
+    - {backend: anthropic, model: claude-haiku-5-5}
+    - {backend: mock-primary, model: mock-small}
+    - {backend: mock-backup, model: mock-small}
+  local:
+    - {backend: vllm, model: Qwen/Qwen2.5-1.5B-Instruct}
+    - {backend: mock-primary, model: mock-small}
+    - {backend: mock-backup, model: mock-small}
+  embed: &embed
+    - {backend: openai, model: text-embedding-3-small}
+    - {backend: mock-primary, model: mock-embed}
+  # Aliases can be named after real models so unmodified clients work as-is.
+  text-embedding-3-small: *embed
+
+default_alias: fast
+
+# ---------------------------------------------------------------------------
+# Rules: evaluated in order after alias lookup; first match rewrites the alias.
+# ---------------------------------------------------------------------------
+rules:
+  - name: long-prompts-to-local    # long prompts are where vLLM prefix caching pays off
+    min_prompt_tokens: ${GATEWAY_LONG_PROMPT_TOKENS:-3000}
+    aliases: [fast, cheap]         # only rewrite these; `smart`/`best` are honored as asked
+    route_to: local
+
+# ---------------------------------------------------------------------------
+# Cost tiers: which aliases a key may use. Disallowed aliases are downgraded
+# to the tier's default_alias (reported in the x-gateway-route header).
+# ---------------------------------------------------------------------------
+tiers:
+  free: {allowed_aliases: [fast, cheap, local, embed, text-embedding-3-small], default_alias: cheap}
+  pro: {allowed_aliases: ["*"], default_alias: fast}
+
+# ---------------------------------------------------------------------------
+# Prices in USD per 1M tokens (input / output). Verify against provider pages.
+# Mock prices are PRETEND numbers so the demo dashboard shows non-zero $.
+# vLLM is self-hosted: set this to your amortized GPU cost if you want it counted.
+# ---------------------------------------------------------------------------
+prices:
+  claude-opus-5-5: {input: 4.00, output: 20.00}
+  claude-sonnet-5-5: {input: 2.00, output: 10.00}
+  claude-haiku-5-5: {input: 0.10, output: 0.50}
+  gpt-4.1: {input: 2.00, output: 8.00}
+  gpt-4.1-mini: {input: 0.40, output: 1.60}
+  text-embedding-3-small: {input: 0.02, output: 0.0}
+  Qwen/Qwen2.5-1.5B-Instruct: {input: 0.0, output: 0.0}
+  mock-small: {input: 0.10, output: 0.50}
+  mock-large: {input: 2.00, output: 10.00}
+  mock-embed: {input: 0.02, output: 0.0}
+
+# ---------------------------------------------------------------------------
+# API keys. Provide the secret either as secret_sha256 (hex digest; the plain
+# key never lives in config) or secret_env (name of an env var holding it).
+# ---------------------------------------------------------------------------
+api_keys:
+  - id: demo                        # plain key: sk-gw-demo (demo only!)
+    secret_sha256: 27255e70d3e431b9d33560d7053c9b11aca1ca679bef29197e09681256609bde
+    tier: pro
+    rpm: 600
+    tpm: 2000000
+    monthly_budget_usd: 50
+    admin: true
+  - id: docpilot
+    secret_env: GATEWAY_KEY_DOCPILOT
+    tier: pro
+    rpm: 300
+    tpm: 1000000
+    monthly_budget_usd: 20
+  - id: free-user
+    secret_env: GATEWAY_KEY_FREE
+    tier: free
+    rpm: 20
+    tpm: 40000
+    monthly_budget_usd: 1
+
+# ---------------------------------------------------------------------------
+# Caches.
+# ---------------------------------------------------------------------------
+cache:
+  exact:
+    enabled: true
+    ttl_s: 3600
+  semantic:
+    enabled: true
+    threshold: 0.95          # strict on purpose; tune with scripts/tune_semantic_threshold.py
+    max_entries: 2000        # per namespace (alias + system prompt + prior turns)
+    ttl_s: 3600
+    embedding_alias: embed
+  # Caching a non-deterministic request would freeze one random sample forever.
+  # Only temperature == 0 requests are cached unless the client sends
+  # `x-gateway-cache: allow`. `x-gateway-cache: skip` bypasses both caches.
+  require_zero_temperature: true

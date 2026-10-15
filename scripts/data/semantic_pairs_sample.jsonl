@@ -1,0 +1,40 @@
+{"a": "What is the capital of France?", "b": "what's the capital of france", "same_answer": true}
+{"a": "What is the capital of France?", "b": "What is the capital of Germany?", "same_answer": false}
+{"a": "How do I reverse a list in Python?", "b": "python: how to reverse a list", "same_answer": true}
+{"a": "How do I reverse a list in Python?", "b": "How do I reverse a string in Python?", "same_answer": false}
+{"a": "How do I sort a dictionary by value in Python?", "b": "Sort a Python dict by its values", "same_answer": true}
+{"a": "How do I sort a dictionary by value in Python?", "b": "How do I sort a dictionary by key in Python?", "same_answer": false}
+{"a": "Explain what a KV cache is in transformer inference.", "b": "What is the KV cache in transformer inference?", "same_answer": true}
+{"a": "Explain what a KV cache is in transformer inference.", "b": "Explain what a CPU cache is in computer architecture.", "same_answer": false}
+{"a": "What does continuous batching do in vLLM?", "b": "Explain continuous batching in vLLM", "same_answer": true}
+{"a": "What does continuous batching do in vLLM?", "b": "What does static batching do in TensorRT?", "same_answer": false}
+{"a": "Convert 100 Fahrenheit to Celsius", "b": "100 F in C?", "same_answer": true}
+{"a": "Convert 100 Fahrenheit to Celsius", "b": "Convert 100 Celsius to Fahrenheit", "same_answer": false}
+{"a": "Summarize the plot of Hamlet in two sentences.", "b": "Give me a two-sentence summary of Hamlet's plot.", "same_answer": true}
+{"a": "Summarize the plot of Hamlet in two sentences.", "b": "Summarize the plot of Macbeth in two sentences.", "same_answer": false}
+{"a": "Summarize the plot of Hamlet in two sentences.", "b": "Summarize the plot of Hamlet in two paragraphs.", "same_answer": false}
+{"a": "What is the time complexity of binary search?", "b": "binary search time complexity", "same_answer": true}
+{"a": "What is the time complexity of binary search?", "b": "What is the space complexity of binary search?", "same_answer": false}
+{"a": "How many days are in a leap year?", "b": "Number of days in a leap year?", "same_answer": true}
+{"a": "How many days are in a leap year?", "b": "How many days are in a non-leap year?", "same_answer": false}
+{"a": "Translate 'good morning' to Spanish", "b": "How do you say good morning in Spanish?", "same_answer": true}
+{"a": "Translate 'good morning' to Spanish", "b": "Translate 'good morning' to French", "same_answer": false}
+{"a": "What port does PostgreSQL use by default?", "b": "default postgres port", "same_answer": true}
+{"a": "What port does PostgreSQL use by default?", "b": "What port does MySQL use by default?", "same_answer": false}
+{"a": "Write a haiku about autumn.", "b": "Compose a haiku on the theme of autumn.", "same_answer": true}
+{"a": "Write a haiku about autumn.", "b": "Write a haiku about spring.", "same_answer": false}
+{"a": "Is a tomato a fruit or a vegetable?", "b": "Tomato: fruit or vegetable?", "same_answer": true}
+{"a": "Who wrote Pride and Prejudice?", "b": "Pride and Prejudice was written by whom?", "same_answer": true}
+{"a": "Who wrote Pride and Prejudice?", "b": "When was Pride and Prejudice written?", "same_answer": false}
+{"a": "What is 15% of 80?", "b": "Calculate fifteen percent of 80", "same_answer": true}
+{"a": "What is 15% of 80?", "b": "What is 15% of 90?", "same_answer": false}
+{"a": "How do I undo the last git commit but keep my changes?", "b": "git: undo last commit, keep changes", "same_answer": true}
+{"a": "How do I undo the last git commit but keep my changes?", "b": "How do I undo the last git commit and discard my changes?", "same_answer": false}
+{"a": "What are the symptoms of dehydration?", "b": "Signs that someone is dehydrated", "same_answer": true}
+{"a": "What are the symptoms of dehydration?", "b": "What are the treatments for dehydration?", "same_answer": false}
+{"a": "List three benefits of unit testing.", "b": "Give me 3 advantages of writing unit tests.", "same_answer": true}
+{"a": "List three benefits of unit testing.", "b": "List three drawbacks of unit testing.", "same_answer": false}
+{"a": "What does HTTP status 404 mean?", "b": "meaning of http 404", "same_answer": true}
+{"a": "What does HTTP status 404 mean?", "b": "What does HTTP status 403 mean?", "same_answer": false}
+{"a": "Recommend a good book on distributed systems.", "b": "Recommend a good book on distributed systems!", "same_answer": true}
+{"a": "Is it safe to eat raw cookie dough?", "b": "Is it safe to eat raw bread dough?", "same_answer": false}

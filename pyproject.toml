@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-gateway"
+version = "0.1.0"
+description = "One OpenAI-compatible endpoint in front of Anthropic, OpenAI, vLLM and a mock backend: routing, fallback, caching, rate limits, budgets, cost accounting."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
+    "redis>=5.0",
+    "anthropic>=1.0",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "pyyaml>=6.0",
+    "prometheus-client>=0.20",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# `local` lets `uvicorn gateway.main:app` run without a Redis server (GATEWAY_REDIS_URL=fakeredis://).
+local = ["fakeredis[lua]>=2.23"]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "fakeredis[lua]>=2.23",
+    "respx>=0.21",
+]
+loadtest = ["locust>=2.24"]
+
+[tool.setuptools.packages.find]
+include = ["gateway*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
